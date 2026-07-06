@@ -1,0 +1,9 @@
+{
+    "active": true,
+    "mode": "Python vEnv",
+    "envName": "TD_vEnv",
+    "installPath": "C:\\Users\\holtl\\Documents\\MScRob_ExpressivePuppeteering\\TD",
+    "pythonVersion": "3.11",
+    "pythonVersionNoDot": "311",
+    "autoSetup": false
+}
