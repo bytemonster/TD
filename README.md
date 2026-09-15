@@ -8,16 +8,14 @@ robot's kinematics, so mapping structures can be rewired without touching the re
 of the chain.
 
 This is the software artifact for:
-
-> TODO — paper title, authors, venue, year, DOI/arXiv link
-> TODO — MSc thesis title and repository link
-
+Master Thesis: OPENING A DESIGN SPACE FOR EXPRESSIVELY PUPPETEERING A ROBOTIC MOTION RIG, Chris Hotland, 2026, University of Twente 
+ >>TODO: theis link
 ---
 
 ## Prerequisites
 
 ### Software
-%to chech
+%to check
 | Requirement | Version | Notes |
 |---|---|---|
 | TouchDesigner | TODO — exact build, e.g. `2023.11xxx` | `.toe`/`.tox` files **cannot** be opened by a build older than the one that saved them. Non-commercial licence is sufficient. |
@@ -182,7 +180,6 @@ start and goal states. Forcing terms are scaled by learned per-DOF amplitude
 instability when start and goal coincide. The feature-extraction path is currently
 commented out.
 
----
 ---
 
 ## Operator reference
