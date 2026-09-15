@@ -15,7 +15,9 @@ Master Thesis: OPENING A DESIGN SPACE FOR EXPRESSIVELY PUPPETEERING A ROBOTIC MO
 ## Prerequisites
 
 ### Software
+
 %to check
+
 | Requirement | Version | Notes |
 |---|---|---|
 | TouchDesigner | TODO — exact build, e.g. `2023.11xxx` | `.toe`/`.tox` files **cannot** be opened by a build older than the one that saved them. Non-commercial licence is sufficient. |
@@ -29,8 +31,6 @@ for specific targets:
 
 - **SO-101 arm** with Waveshare ST3215 servos — the primary platform used in the
   study. Connects over USB serial via `feetech-servo-sdk`.
-%to check do we support Braccios? I think we did.
-- **Arduino Braccio** — serial, via `robot_Braccio_serial.tox`.
 - **Any OSC-capable target** — via `robot_so101_osc.tox` / `robot_manual_osc.tox`.
 
 Controller inputs used during development: MIDI launchpad, gamepad, keyboard, and
