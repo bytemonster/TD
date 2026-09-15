@@ -20,21 +20,22 @@ Master Thesis: OPENING A DESIGN SPACE FOR EXPRESSIVELY PUPPETEERING A ROBOTIC MO
 
 | Requirement | Version | Notes |
 |---|---|---|
-| TouchDesigner | TODO — exact build, e.g. `2023.11xxx` | `.toe`/`.tox` files **cannot** be opened by a build older than the one that saved them. Non-commercial licence is sufficient. |
+| TouchDesigner | TODO : exact build, e.g. `2023.11xxx` | `.toe`/`.tox` files **cannot** be opened by a build older than the one that saved them. Non-commercial licence is sufficient. |
 | Python | 3.11 | Must match the interpreter your TouchDesigner build ships with. Check with `import sys; print(sys.version)` in the Textport. |
-| Git | any | Recommended over ZIP download — see the folder-name warning below. |
+| Git | any | Recommended over ZIP download : see the folder-name warning below. |
 
 ### Hardware
 
 The system is robot-agnostic, but the operators in `own_comps/robots/` are written
 for specific targets:
 
-- **SO-101 arm** with Waveshare ST3215 servos — the primary platform used in the
+- **SO-101 arm** with Waveshare ST3215 servos, the primary platform used in the
   study. Connects over USB serial via `feetech-servo-sdk`.
-- **Any OSC-capable target** — via `robot_so101_osc.tox` / `robot_manual_osc.tox`.
+- **Arduino Braccio** via robot_Braccio_serial.tox.
+- **Any OSC-capable target**  via `robot_so101_osc.tox` / `robot_manual_osc.tox`.
 
 Controller inputs used during development: MIDI launchpad, gamepad, keyboard, and
-a second SO-101 used as a teleoperation leader arm. None of these are required —
+a second SO-101 used as a teleoperation leader arm. None of these are required 
 any TouchDesigner input source can be wired in.
 
 You can open the project and explore the mapping chains without any robot
@@ -53,7 +54,7 @@ cd TD
 
 > **The root folder must be named exactly `TD`.** The project resolves the virtual
 > environment relative to this name. If you downloaded a ZIP, it extracts as
-> `TD-main` — rename it to `TD` before continuing, or nothing will initialise.
+> `TD-main` -> rename it to `TD` before continuing, or nothing will initialise.
 
 ### 2. Create the virtual environment
 
@@ -95,7 +96,7 @@ terminal prompt.
 ### 3. Point TouchDesigner at it
 
 1. Open `conference.toe`.
-2. **Edit → Preferences → Python** — set the Python Module Path to your `TD` folder.
+2. **Edit → Preferences → Python**  set the Python Module Path to your `TD` folder.
 3. Open the Textport (`Alt+T` / `Cmd+T`). No initialisation errors means you're set.
 
 > `TDPyEnvManagerContext.json` contains an absolute path from the original
@@ -120,7 +121,7 @@ TD/
 ├── requirements.txt
 ├── TDPyEnvManagerContext.json  # venv config (contains a machine-specific path)
 ├── own_comps/
-│   ├── blocks/                 # the operator library — see below
+│   ├── blocks/                 # the operator library, see below
 │   ├── robots/                 # robot output operators (SO-101, Braccio, OSC)
 │   ├── backup/                 # earlier operator versions + full_DMP.py
 │   └── images/
@@ -134,9 +135,6 @@ TD/
 ---
 
 ## Operator reference
-
-> TODO — verify and expand these one-line descriptions; parameters are not
-> documented here.
 
 **Joint grouping**
 %to check plz!
@@ -279,16 +277,5 @@ commented out.
 - Large mapping structures become visually hard to manage in a node-based editor.
 - Only one example movement clip is included.
 
-## Workshop material
-
-TODO — the graduated manual and routing/puppeteering assignments used in the
-evaluation study are not included in this repository. Add them here or link out.
 
 ## Licence
-
-TODO — no licence file is present. Without one, default copyright applies and
-others cannot legally reuse the code.
-
-## Citation
-
-TODO — BibTeX entry.
