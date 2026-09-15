@@ -182,54 +182,71 @@ commented out.
 
 ## Operator reference
 
-Generated from the components themselves with `generate_operator_table.py`.
-All inputs and outputs are CHOPs unless noted. Angles are in **degrees**.
-The recurring `Robot` parameter takes a reference to a robot component from
-`own_comps/robots/`, which is how operators stay kinematics-agnostic.
+Descriptions are from Appendix C of the thesis; connector names and parameter
+defaults are read from the components themselves via `generate_operator_table.py`.
+All inputs and outputs are CHOPs unless noted. Angles are in **degrees**, positions
+in **cm**. The recurring `Robot` parameter takes a reference to a component from
+`own_comps/robots/`, which supplies the H-matrices and twists that keep the other
+operators kinematics-agnostic.
 
-### `own_comps/blocks`
+Operators are self-contained: none reads or writes anything outside itself and its
+own connectors, apart from the robot configuration.
 
-| Operator | Inputs | Outputs | Custom parameters |
+### Joint grouping
+
+| Operator | Description | Inputs | Outputs | Parameters |
+|---|---|---|---|---|
+| `add_overlapping` | Adds two channel groups into one. A size difference leaves the surplus channels concatenated onto the output. | `channels1` (X ch)<br>`channels2` (Y ch) | `channels_out` (max(X,Y) ch) | - |
+| `fan_out` | Separates incoming channels into single-channel outputs. | `in` (N ch) | 16 single-channel outputs: `out0_xaxis`, `out1_yaxis`, `out2_zaxis`, `out3_xrot`, `out4_yrot`, `out5_zrot`, `out6_slider1`, `out7_slider2`, `out8_b1`-`out13_b6`, `out14_p1_X`, `out15_p1_Y` | - |
+| `fan_robot_angles` | Creates as many input connectors as the connected robot has joints, and merges them into one output. | `channel1` ... `channel6` | `angles` (N ch) | `Robot` (COMP) |
+| `ref_clamp` | Clamps incoming channels to per-channel bounds supplied as a second input. | `clamp_vals` (2N ch, ordered `min1, max1, min2, max2, ... maxN`)<br>`in` (N ch) | `out` (N ch) | - |
+| `scale` | Scales all incoming channels. Driving the `scale` input overrides the parameter. | `channels` (X ch)<br>`scale` (optional) | `channels_scaled` (X ch) | `Scale` (Float, `0.0`) |
+
+### Kinematics
+
+| Operator | Description | Inputs | Outputs | Parameters |
+|---|---|---|---|---|
+| `FK` | Computes every joint's position and orientation from the joint angles. | `angles` | `FK` (all joint positions and orientations) | `Robot` (COMP) |
+| `IK` | Full control of a serial chain by setting end-effector position (cm) and orientation (degrees). Setpoints are always given in the first reference frame; which joints are driven is set by the base and end-effector parameters. `brake` outputs in the opposite direction when the chain cannot reach the setpoint - add it to an integrator (Speed CHOP) input to stop the setpoint drifting into unreachable space. | `setpoint_pos`<br>`setpoint_orient` (optional, default `[0,0,0]`) | `angles`<br>`brake` | `Endeff` - End Effector Joint (Int, `0`)<br>`Baseidx` - Base Joint (Int, `0`)<br>`Robot` (COMP)<br>`Resetrest` - Reset Rest Pose (Pulse)<br>`Gain` - velocity error gain (Int, `10`)<br>`Speedlimit` - max velocity per frame, norm (Int, `10`)<br>`Nullgain` - pull toward rest pose, i.e. elbow bending (Float, `0.2`) |
+| `end_wrench` | Converts servo load readings into equivalent Fx, Fy, Fz at the chosen end-effector. | `angles`<br>`loads` | `wrench` (Fx, Fy, Fz) | `Endeff` - End Effector (Int, `0`)<br>`Robot` (COMP) |
+| `render` | Wireframe render of the serial chain with endpoint and setpoint coordinate frames and the end-effector wrench. To show it behind the network editor, feed it to a Null TOP with the display flag on. | `angles`<br>`setpoint_pos`<br>`setpoint_orient`<br>`wrench` | `render` (TOP) | `Robot` (COMP) |
+
+### Expressive and animation layers
+
+| Operator | Description | Inputs | Outputs | Parameters |
+|---|---|---|---|---|
+| `expressive_overlay` | Adds dynamic character to the input channels; the viewer shows the step response for the current parameters. Driving the `damping` or `natural_freq` inputs overrides the parameters. Holding `anticipation` high pulls values back opposite to the setpoint for as long as it is held. Holding `hold` high freezes movement, then snaps to the setpoints at increased velocity on release. | `channels`<br>`anticipation` (optional)<br>`hold` (optional)<br>`damping` (optional)<br>`natural_freq` (optional) | `expressive_channels` | `Damping` (Float, `0.5`)<br>`Natfreq` - Natural Frequency (Float, `2.0`) |
+| `animation` | Animates channels. Native TouchDesigner COMP. | `in` | `out` (X full-range channels) | - |
+| `retarget_movement` | Abstracts the motion characteristics of a recording and reapplies them to a new target - the current channel's pose at the moment of triggering. When not triggered, the current channels pass straight through. Record start and end at the same pose to avoid a jump when the sequence fires. | `current_channels`<br>`channels_recording` (full range)<br>`trigger` | `channels` (motion sequence) | `Speedmultiplier` (Float, `1.0`) |
+| `trigger_play` | Plays a full-range recording sequentially when the trigger channel rises high. | `full_range_channels`<br>`trigger` | `channels`<br>`running_flag` | - |
+| `toggle` | Flips its output between 0 and 1 each time the input channel rises above 0.0. | `button_channel` | `logic` | - |
+| `recorder` | TODO - not documented in Appendix C. Has no in/out connectors; it reads and writes through internal references. `Newsession` (Pulse) starts a new session. | none | none | `Newsession` (Pulse) |
+
+### Robot operators (`own_comps/robots`)
+
+The robot operator prepares and sends data to the connected robot or OSC target,
+and holds the configuration information (H0-matrices and twists) the other
+operators read. It is robot-specific by design: to support different hardware,
+adapt its configuration and communication scripts.
+
+Specific to the SO-101: `Com` selects the USB port, and `Resetport` closes and
+reopens it. Disabling torques stops the servos actuating toward their setpoints
+while still taking measurements, which is what makes hand-puppeteering during
+recording possible. The P and D parameters set each servo's internal gains, and
+driving the corresponding inputs overrides them. Number of joints is derived from
+the configuration information; acceleration, speed and baud reflect the
+communication protocol.
+
+| Operator | Inputs | Outputs | Parameters |
 |---|---|---|---|
-| `FK` | `angles` | `FK` | `Robot` - robot (COMP) |
-| `IK` | `setpoint_pos`<br>`setpoint_orient` | `angles`<br>`brake` | `Endeff` - End Effector Joint (Int, `0`)<br>`Baseidx` - Base Joint (Int, `0`)<br>`Robot` - robot (COMP)<br>`Resetrest` - Reset Rest Pose (Pulse)<br>`Gain` - Gain (Int, `10`)<br>`Speedlimit` - Speed Limit (norm) (Int, `10`)<br>`Nullgain` - Null Gain (Float, `0.2`) |
-| `add_overlapping` | `channels1`<br>`channels2` | `channels_out` | - |
-| `animation` | `in` | `out` | - |
-| `end_wrench` | `angles`<br>`loads` | `wrench` | `Endeff` - End Effector (Int, `0`)<br>`Robot` - robot (COMP) |
-| `expressive_overlay` | `channels`<br>`anticipation`<br>`hold`<br>`natural_freq`<br>`damping` | `expressive_channels` | `Damping` - Damping (Float, `0.5`)<br>`Natfreq` - Natural Frequency (Float, `2.0`) |
-| `fan_out` | `in` | `out0_xaxis`, `out1_yaxis`, `out2_zaxis`<br>`out3_xrot`, `out4_yrot`, `out5_zrot`<br>`out6_slider1`, `out7_slider2`<br>`out8_b1` ... `out13_b6`<br>`out14_p1_X`, `out15_p1_Y` | - |
-| `fan_robot_angles` | `channel1` ... `channel6` | `angles` | `Robot` - robot (COMP) |
-| `recorder` | none (see note) | none (see note) | `Newsession` - New Session (Pulse) |
-| `ref_clamp` | `in`<br>`clamp_vals` | `out` | - |
-| `render` | `angles`<br>`setpoint_pos`<br>`setpoint_orient`<br>`wrench` | `render` (TOP) | `Robot` - robot (COMP) |
-| `retarget_movement` | `current_channels`<br>`channels_recording`<br>`trigger` | `channels` | `Speedmultiplier` - Speed Multiplier (Float, `1.0`) |
-| `scale` | `channels`<br>`scale` | `channels_scaled` | `Scale` - Scale (Float, `0.0`) |
-| `toggle` | `button_channel` | `logic` | - |
-| `trigger_play` | `full_range_channels`<br>`trigger` | `channels`<br>`running_flag` | - |
-
-The `expressive_overlay` exposes anticipation, hold, natural frequency and
-damping as **both** CHOP inputs and custom parameters, so they can be either
-set statically or modulated live from a controller.
-
-`recorder` has no in/out operators; it reads and writes through internal
-references rather than the connector interface. TODO - document how it is wired.
-
-`fan_out` is hardwired to a 16-output layout matching a specific controller
-(3 axes, 3 rotations, 2 sliders, 6 buttons, 2 pad axes). TODO - note which
-controller, since remapping to another device means editing the component.
-
-### `own_comps/robots`
-
-| Operator | Inputs | Outputs | Custom parameters |
-|---|---|---|---|
-| `robot_so101` | `angles`<br>`p_gain`<br>`d_gain` | `angles_out`<br>`loads_out` | `Nrjoints` (Int)<br>`Enabletorque` - Enable Torques (Toggle, `True`)<br>`Com` - COM (Int, `7`)<br>`Resetport` (Pulse)<br>`Positionpgain` (Int, `32`)<br>`Positiondgain` (Int, `32`)<br>`Acc` (Int, `50`)<br>`Speed` (Int, `2400`)<br>`Baud` (Int, `1000000`) |
-| `robot_so101_MACOS_compatible` | `angles` | `angles_out` | as above, but `Comport` is a **menu** with `Refreshports` (Pulse) instead of a numeric COM index. No `loads_out`, so no force feedback. |
+| `robot_so101` | `angles`<br>`p_gain` (optional)<br>`d_gain` (optional) | `angles_out` (measured, degrees)<br>`loads_out` (measured, Ncm) | `Nrjoints` (Int, read-only)<br>`Enabletorque` (Toggle, `True`)<br>`Com` (Int, `7`)<br>`Resetport` (Pulse)<br>`Positionpgain` (Int, `32`)<br>`Positiondgain` (Int, `32`)<br>`Acc` (Int, `50`, read-only)<br>`Speed` (Int, `2400`, read-only)<br>`Baud` (Int, `1000000`, read-only) |
+| `robot_so101_MACOS_compatible` | `angles` | `angles_out` | As above, but `Comport` is a **menu** with `Refreshports` (Pulse) in place of the numeric `Com`. No `loads_out`. |
 | `robot_so101_osc` | `angles` | - | `Nrjoints` (Int) |
 | `robot_manual_osc` | `q_in` | - | `Nrjoints` (Int) |
-| `robot_Braccio_serial` | `angles` | - | `Nrjoints` (Int)<br>`Com` - COM (Int, `8`) |
+| `robot_Braccio_serial` | `angles` | - | `Nrjoints` (Int)<br>`Com` (Int, `8`) |
 
-Only `robot_so101` returns `loads_out`, which `end_wrench` needs. The macOS
-variant and the OSC variants are output-only, so wrench-based feedback chains
+Only `robot_so101` returns `loads_out`, which `end_wrench` requires. The macOS
+variant and both OSC variants are output-only, so wrench-based feedback chains
 will not work with them.
 
 ### `full_DMP.py`
@@ -241,7 +258,6 @@ start and goal states. Forcing terms are scaled by learned per-DOF amplitude
 (`max(y) − min(y)`) rather than `(goal − start)`, which avoids the usual DMP
 instability when start and goal coincide. The feature-extraction path is currently
 commented out.
-
 
 ---
 
