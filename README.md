@@ -277,5 +277,3 @@ commented out.
 - Large mapping structures become visually hard to manage in a node-based editor.
 - Only one example movement clip is included.
 
-
-## Licence
