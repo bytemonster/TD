@@ -247,8 +247,6 @@ start and goal states. Forcing terms are scaled by learned per-DOF amplitude
 instability when start and goal coincide. The feature-extraction path is currently
 commented out.
 
----
-
 
 ---
 
